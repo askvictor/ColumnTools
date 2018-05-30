@@ -2,6 +2,7 @@ function onOpen(e) {
   SpreadsheetApp.getUi()
     .createAddonMenu()
     .addItem('Convert Columns to Named Ranges', 'NameRanges')
+    .addItem('Conditionally Format selection one column at a time', 'ColourColumns')
     .addToUi();
 }
 
@@ -43,6 +44,56 @@ function NameRanges() {
           ss.setNamedRange(name, col)
         }
       }
+    }
+  }
+}
+
+function ColourColumns() {
+  var ui = SpreadsheetApp.getUi(); 
+  var ss = SpreadsheetApp.getActiveSpreadsheet()
+  var sheet = ss.getActiveSheet()
+  var conditionalFormatRules = sheet.getConditionalFormatRules();
+  
+  var rangeList = ss.getActiveRangeList()
+  var ranges = rangeList.getRanges()
+  
+  if(rangeList == null || ranges.length == 0 || (ranges.length == 1 && ranges[0].getNumColumns() == 1 && ranges[0].getNumRows() == 1)){ //check if anything has been selected
+    ui.alert(
+      'Please select one more more columns to format.',
+      ui.ButtonSet.OK)
+    return
+  } else { //something has been selected
+    var result = ui.alert( //check the user wants to do this thing
+      'Continue?',
+      'This will conditionally format in a the selection column-by-column in a colour scale (red -> green). Are you sure you want to continue?',
+      ui.ButtonSet.YES_NO);
+    
+    if (result == ui.Button.YES) {  //user wants to do this thing
+      for (var i = 0; i < ranges.length; i++) {
+        for(var j=0; j<ranges[i].getNumColumns(); j++) {
+          var col = ranges[i].offset(0,j,ranges[i].getNumRows(), 1)
+          
+          conditionalFormatRules.push(SpreadsheetApp.newConditionalFormatRule()
+                                      .setRanges([col])
+                                      .whenCellNotEmpty()
+                                      .setBackground('#B7E1CD')
+                                      .build());
+          
+          conditionalFormatRules.splice(conditionalFormatRules.length - 1, 1, SpreadsheetApp.newConditionalFormatRule()
+          .setRanges([col])
+          .setGradientMinpoint('#57BB8A')
+          .setGradientMaxpoint('#FFFFFF')
+          .build());
+          conditionalFormatRules.splice(conditionalFormatRules.length - 1, 1, SpreadsheetApp.newConditionalFormatRule()
+          .setRanges([col])
+          .setGradientMinpoint('#E67C73')
+          .setGradientMidpointWithValue('#FFFFFF', SpreadsheetApp.InterpolationType.PERCENTILE, '50')
+          .setGradientMaxpoint('#57BB8A')
+          .build());
+          
+        }
+      }
+      sheet.setConditionalFormatRules(conditionalFormatRules);
     }
   }
 }
