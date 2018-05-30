@@ -12,10 +12,10 @@ function onInstall(e) {
 function NameRanges() {
   var ui = SpreadsheetApp.getUi(); 
   var ss = SpreadsheetApp.getActiveSpreadsheet()
-  var rl = ss.getActiveRangeList()
-  rs = rl.getRanges()
+  var rangeList = ss.getActiveRangeList()
+  var ranges = rangeList.getRanges()
   
-  if(rl == null || rs.length == 0 || (rs.length == 1 && rs[0].getNumColumns() == 1 && rs[0].getNumRows() == 1)){ //check if anything has been selected
+  if(rangeList == null || ranges.length == 0 || (ranges.length == 1 && ranges[0].getNumColumns() == 1 && ranges[0].getNumRows() == 1)){ //check if anything has been selected
     ui.alert(
      'Please select one more more columns to convert to named ranges.',
       ui.ButtonSet.OK)
@@ -27,9 +27,9 @@ function NameRanges() {
       ui.ButtonSet.YES_NO);
     
     if (result == ui.Button.YES) {  //user wants to do this thing
-      for (var i = 0; i < rs.length; i++) {
-        for(var j=0; j<rs[i].getNumColumns(); j++) {
-          var col = rs[i].offset(0,j,rs[i].getNumRows(), 1)
+      for (var i = 0; i < ranges.length; i++) {
+        for(var j=0; j<ranges[i].getNumColumns(); j++) {
+          var col = ranges[i].offset(0,j,ranges[i].getNumRows(), 1)
           var name = col.getValue()
           // clean up name to be a valid NamedRange name
           name = String(name)  //ensure it's a string not a number
