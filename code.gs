@@ -48,6 +48,25 @@ function NameRanges() {
   }
 }
 
+//find the conditional formatting rules applied to a given range
+function getCondFmtRulesForRange(range, sheet){
+  var condFmtRules = sheet.getConditionalFormatRules()
+  var rulesForRange = []
+  for (var i = 0; i < condFmtRules.length; i++) {
+    var rulesRanges = condFmtRules[i].getRanges()
+    for(var j=0; j<rulesRanges.length; j++){
+      //check if the col is wholly within a conditional formatting rule
+      if(range.getColumn() >= rulesRanges[j].getColumn() && range.getLastColumn() <= rulesRanges[j].getLastColumn()) {
+        if(range.getRow() >= rulesRanges[j].getRow() && range.getLastRow() <= rulesRanges[j].getLastRow()) {
+          rulesForRange.push(condFmtRules[i])
+        }
+      }
+    }
+  }
+  return rulesForRange
+}
+  
+
 function ColourColumns() {
   var ui = SpreadsheetApp.getUi(); 
   var ss = SpreadsheetApp.getActiveSpreadsheet()
@@ -65,32 +84,27 @@ function ColourColumns() {
   } else { //something has been selected
     var result = ui.alert( //check the user wants to do this thing
       'Continue?',
-      'This will conditionally format in a the selection column-by-column in a colour scale (red -> green). Are you sure you want to continue?',
+      'This will conditionally format the selection column-by-column based on the rules set for the first column. Are you sure you want to continue?',
       ui.ButtonSet.YES_NO);
     
     if (result == ui.Button.YES) {  //user wants to do this thing
+      var rules = getCondFmtRulesForRange(ranges[0].offset(0,0,ranges[0].getNumRows(),1), sheet)
+      if(rules.length == 0){
+        ui.alert("No conditional formatting has been set for the first column of your selection. Please set conditional formatting for the first column of you selection then try again", ui.ButtonSet.OK)
+        return
+      }
+            
       for (var i = 0; i < ranges.length; i++) {
         for(var j=0; j<ranges[i].getNumColumns(); j++) {
+          if(i==0 && j==0){
+            continue  //skip first column as that's our source of formatting; no need to apply it back to itself
+          }
           var col = ranges[i].offset(0,j,ranges[i].getNumRows(), 1)
-          
-          conditionalFormatRules.push(SpreadsheetApp.newConditionalFormatRule()
-                                      .setRanges([col])
-                                      .whenCellNotEmpty()
-                                      .setBackground('#B7E1CD')
-                                      .build());
-          
-          conditionalFormatRules.splice(conditionalFormatRules.length - 1, 1, SpreadsheetApp.newConditionalFormatRule()
-          .setRanges([col])
-          .setGradientMinpoint('#57BB8A')
-          .setGradientMaxpoint('#FFFFFF')
-          .build());
-          conditionalFormatRules.splice(conditionalFormatRules.length - 1, 1, SpreadsheetApp.newConditionalFormatRule()
-          .setRanges([col])
-          .setGradientMinpoint('#E67C73')
-          .setGradientMidpointWithValue('#FFFFFF', SpreadsheetApp.InterpolationType.PERCENTILE, '50')
-          .setGradientMaxpoint('#57BB8A')
-          .build());
-          
+
+          for(var k=0; k<rules.length; k++){
+             var rulebuilder = rules[k].copy()
+             conditionalFormatRules.push(rulebuilder.setRanges([col]).build());
+          }
         }
       }
       sheet.setConditionalFormatRules(conditionalFormatRules);
