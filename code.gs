@@ -3,6 +3,12 @@ function onOpen(e) {
     .createAddonMenu()
     .addItem('Convert Columns to Named Ranges', 'NameRanges')
     .addItem('Conditionally Format selection one column at a time', 'ColourColumns')
+    .addSubMenu(SpreadsheetApp.getUi().createMenu('Sort Horizontally')
+          .addItem('Sort Sheet Horizontally A-Z', 'SortSheetHorizontallyAZ')
+          .addItem('Sort Sheet Horizontally Z-A', 'SortSheetHorizontallyZA')
+          .addItem('Sort Range Horizontally A-Z', 'SortRangeHorizontallyAZ')
+          .addItem('Sort Range Horizontally Z-A', 'SortRangeHorizontallyZA')
+          )
     .addToUi();
 }
 
@@ -110,4 +116,62 @@ function ColourColumns() {
       sheet.setConditionalFormatRules(conditionalFormatRules);
     }
   }
+}
+
+function SortSheetHorizontallyAZ(){
+  SortHorizontally('sheet', true)
+
+}
+function SortRangeHorizontallyAZ(){
+  SortHorizontally('range', true)
+}
+
+function SortSheetHorizontallyZA(){
+  SortHorizontally('sheet', false)
+
+}
+function SortRangeHorizontallyZA(){
+  SortHorizontally('range', false)
+}
+
+
+function SortHorizontally(type, order){ 
+  var ui = SpreadsheetApp.getUi(); 
+  var ss = SpreadsheetApp.getActiveSpreadsheet()
+  var sheet = ss.getActiveSheet()
+  var range = null
+  switch(type) {
+    case 'sheet':
+      range = sheet.getDataRange()
+      break;
+    case 'range':
+      range = sheet.getActiveRange()
+      break;
+    default:
+      throw("error: unknown sort type")
+  }
+
+  var response = ui.prompt("Sort by which row?", "Specify the absolute row number from the left side of the spreadsheet", ui.ButtonSet.OK_CANCEL)
+  if(response.getSelectedButton() == ui.Button.CANCEL) {
+    return
+  }
+  
+  if(response.getResponseText().match(/^\d+$/)){
+    var sort_row = parseInt(response.getResponseText())
+  }else{
+    throw("invalid row entered")
+  }
+  sort_row = sort_row - range.getRow() + 1
+  if(sort_row < 1 || sort_row > range.getNumRows()){
+    throw("invalid row entered")
+  }
+
+  var tempsheet = ss.insertSheet('SortTemp');
+
+  range.copyTo(tempsheet.getRange("A1"), SpreadsheetApp.CopyPasteType.PASTE_NORMAL, true)
+  var temprange = tempsheet.getRange(1,1,range.getNumColumns(), range.getNumRows())
+
+  temprange.sort({column: sort_row, ascending: order})
+  temprange.copyTo(range, SpreadsheetApp.CopyPasteType.PASTE_NORMAL, true)
+  ss.deleteSheet(tempsheet)
 }
