@@ -173,5 +173,7 @@ function SortHorizontally(type, order){
 
   temprange.sort({column: sort_row, ascending: order})
   temprange.copyTo(range, SpreadsheetApp.CopyPasteType.PASTE_NORMAL, true)
+  
   ss.deleteSheet(tempsheet)
+  ss.setActiveSheet(sheet, true)  // go back to sheet and selection where we started
 }
