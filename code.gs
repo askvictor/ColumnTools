@@ -30,13 +30,13 @@ function onInstall(e) {
 //  doc.show(app);
 //  }
 
+var OPTYPE = {COLS: 0, ROWS: 1}
 
-//TODO - make an enum or consts (const doesn't seem to work on Gapps script)
 function NameRangesCols(){
-  return NameRanges(0)
+  return NameRanges(OPTYPE.COLS)
 }
 function NameRangesRows(){
-  return NameRanges(1)
+  return NameRanges(OPTYPE.ROWS)
 }
 
 function NameRanges(type) {
@@ -44,7 +44,7 @@ function NameRanges(type) {
   var ss = SpreadsheetApp.getActiveSpreadsheet()
   var rangeList = ss.getActiveRangeList()
   var ranges = rangeList.getRanges()
-  if(type != 1 && type != 0){
+  if(type != OPTYPE.ROWS && type != OPTYPE.COLS){
     throw("Invalid type for NameRanges()")
   }
   if(rangeList == null || ranges.length == 0 || (ranges.length == 1 && ranges[0].getNumColumns() == 1 && ranges[0].getNumRows() == 1)){ //check if anything has been selected
@@ -54,10 +54,10 @@ function NameRanges(type) {
     return
   } else { //something has been selected
     switch(type){
-      case 0: //col
+      case OPTYPE.COLS: //col
         var msg = 'This will convert each selected Column to a Named Range, using the top cell as the name. Any named ranges with the same name will be over-written. Are you sure you want to continue?'
         break
-      case 1: //row
+      case OPTYPE.ROWS: //row
         var msg = 'This will convert each selected Row to a Named Range, using the left cell as the name. Any named ranges with the same name will be over-written. Are you sure you want to continue?'
         break
     }
@@ -69,19 +69,19 @@ function NameRanges(type) {
     if (result == ui.Button.YES) {  //user wants to do this thing
       for (var i = 0; i < ranges.length; i++) {
         switch(type){
-          case 0://col
+          case OPTYPE.COLS://col
             var num_blocks = ranges[i].getNumColumns()
             break
-          case 1://row
+          case OPTYPE.ROWS://row
             var num_blocks = ranges[i].getNumRows()
             break
         }
         for(var j=0; j<num_blocks; j++) {
           switch(type){
-            case 0://col
+            case OPTYPE.COLS://col
               var block = ranges[i].offset(0,j,ranges[i].getNumRows(), 1)
               break
-            case 1://row
+            case OPTYPE.ROWS://row
               var block = ranges[i].offset(j,0,1,ranges[i].getNumColumns())
               break
           }
