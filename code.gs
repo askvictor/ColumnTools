@@ -1,7 +1,8 @@
 function onOpen(e) {
   SpreadsheetApp.getUi()
     .createAddonMenu()
-    .addItem('Convert Columns to Named Ranges', 'NameRanges')
+    .addItem('Convert Columns to Named Ranges', 'NameRangesCols')
+    .addItem('Convert Rows to Named Ranges', 'NameRangesRows')
     .addItem('Conditionally Format selection one column at a time', 'ColourColumns')
     .addSubMenu(SpreadsheetApp.getUi().createMenu('Sort Horizontally')
           .addItem('Sort Sheet Horizontally A-Z', 'SortSheetHorizontallyAZ')
@@ -16,28 +17,76 @@ function onInstall(e) {
   onOpen(e);
 }
 
-function NameRanges() {
+//function menuLink(){
+//showURL("http://www.google.com")
+//}
+//
+//function showURL(href){
+//  var app = UiApp.createApplication().setHeight(500).setWidth(500);
+//  app.setTitle("Open Link");
+//  var link = app.createAnchor('Google.com ', href).setId("link");
+//  app.add(link);  
+//  var doc = SpreadsheetApp.getActive();
+//  doc.show(app);
+//  }
+
+
+//TODO - make an enum or consts (const doesn't seem to work on Gapps script)
+function NameRangesCols(){
+  return NameRanges(0)
+}
+function NameRangesRows(){
+  return NameRanges(1)
+}
+
+function NameRanges(type) {
   var ui = SpreadsheetApp.getUi(); 
   var ss = SpreadsheetApp.getActiveSpreadsheet()
   var rangeList = ss.getActiveRangeList()
   var ranges = rangeList.getRanges()
-  
+  if(type != 1 && type != 0){
+    throw("Invalid type for NameRanges()")
+  }
   if(rangeList == null || ranges.length == 0 || (ranges.length == 1 && ranges[0].getNumColumns() == 1 && ranges[0].getNumRows() == 1)){ //check if anything has been selected
     ui.alert(
      'Please select one more more columns to convert to named ranges.',
       ui.ButtonSet.OK)
     return
   } else { //something has been selected
+    switch(type){
+      case 0: //col
+        var msg = 'This will convert each selected Column to a Named Range, using the top cell as the name. Any named ranges with the same name will be over-written. Are you sure you want to continue?'
+        break
+      case 1: //row
+        var msg = 'This will convert each selected Row to a Named Range, using the left cell as the name. Any named ranges with the same name will be over-written. Are you sure you want to continue?'
+        break
+    }
     var result = ui.alert( //check the user wants to do this thing
       'Continue?',
-      'This will convert each selected Column to a Named Range, using the top cell as the name. Any named ranges with the same name will be over-written. Are you sure you want to continue?',
+      msg,
       ui.ButtonSet.YES_NO);
     
     if (result == ui.Button.YES) {  //user wants to do this thing
       for (var i = 0; i < ranges.length; i++) {
-        for(var j=0; j<ranges[i].getNumColumns(); j++) {
-          var col = ranges[i].offset(0,j,ranges[i].getNumRows(), 1)
-          var name = col.getValue()
+        switch(type){
+          case 0://col
+            var num_blocks = ranges[i].getNumColumns()
+            break
+          case 1://row
+            var num_blocks = ranges[i].getNumRows()
+            break
+        }
+        for(var j=0; j<num_blocks; j++) {
+          switch(type){
+            case 0://col
+              var block = ranges[i].offset(0,j,ranges[i].getNumRows(), 1)
+              break
+            case 1://row
+              var block = ranges[i].offset(j,0,1,ranges[i].getNumColumns())
+              break
+          }
+          
+          var name = block.getValue()
           // clean up name to be a valid NamedRange name
           name = String(name)  //ensure it's a string not a number
             .replace(/\s/g,"_")  //replace spaces with _
@@ -47,7 +96,7 @@ function NameRanges() {
           if(name == ""){  //skip over empty named columns
             continue;
           }
-          ss.setNamedRange(name, col)
+          ss.setNamedRange(name, block)
         }
       }
     }
