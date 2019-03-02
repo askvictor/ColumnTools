@@ -3,7 +3,8 @@ function onOpen(e) {
     .createAddonMenu()
     .addItem('Convert Columns to Named Ranges', 'NameRangesCols')
     .addItem('Convert Rows to Named Ranges', 'NameRangesRows')
-    .addItem('Conditionally Format selection one column at a time', 'ColourColumns')
+    .addItem('Conditionally Format selection one column at a time', 'ColourCols')
+    .addItem('Conditionally Format selection one row at a time', 'ColourRows')
     .addSubMenu(SpreadsheetApp.getUi().createMenu('Sort Horizontally')
           .addItem('Sort Sheet Horizontally A-Z', 'SortSheetHorizontallyAZ')
           .addItem('Sort Sheet Horizontally Z-A', 'SortSheetHorizontallyZA')
@@ -49,7 +50,7 @@ function NameRanges(type) {
   }
   if(rangeList == null || ranges.length == 0 || (ranges.length == 1 && ranges[0].getNumColumns() == 1 && ranges[0].getNumRows() == 1)){ //check if anything has been selected
     ui.alert(
-     'Please select one more more columns to convert to named ranges.',
+     'Please select some cells to convert to named ranges.',
       ui.ButtonSet.OK)
     return
   } else { //something has been selected
@@ -79,14 +80,17 @@ function NameRanges(type) {
         for(var j=0; j<num_blocks; j++) {
           switch(type){
             case OPTYPE.COLS://col
-              var block = ranges[i].offset(0,j,ranges[i].getNumRows(), 1)
+              var block = ranges[i].offset(1,j,ranges[i].getNumRows()-1, 1)
+              var name = ranges[i].offset(0,j).getValue()
+
               break
             case OPTYPE.ROWS://row
-              var block = ranges[i].offset(j,0,1,ranges[i].getNumColumns())
+              var block = ranges[i].offset(j,1,1,ranges[i].getNumColumns()-1)
+              var name = ranges[i].offset(j,0).getValue()
+
               break
           }
           
-          var name = block.getValue()
           // clean up name to be a valid NamedRange name
           name = String(name)  //ensure it's a string not a number
             .replace(/\s/g,"_")  //replace spaces with _
@@ -110,7 +114,7 @@ function getCondFmtRulesForRange(range, sheet){
   for (var i = 0; i < condFmtRules.length; i++) {
     var rulesRanges = condFmtRules[i].getRanges()
     for(var j=0; j<rulesRanges.length; j++){
-      //check if the col is wholly within a conditional formatting rule
+      //check if the range is wholly within a conditional formatting rule
       if(range.getColumn() >= rulesRanges[j].getColumn() && range.getLastColumn() <= rulesRanges[j].getLastColumn()) {
         if(range.getRow() >= rulesRanges[j].getRow() && range.getLastRow() <= rulesRanges[j].getLastRow()) {
           rulesForRange.push(condFmtRules[i])
@@ -122,7 +126,13 @@ function getCondFmtRulesForRange(range, sheet){
 }
   
 
-function ColourColumns() {
+function ColourCols() {
+  return ColourRanges(OPTYPE.COLS)
+}
+function ColourRows() {
+  return ColourRanges(OPTYPE.ROWS)
+}
+function ColourRanges(type) {
   var ui = SpreadsheetApp.getUi(); 
   var ss = SpreadsheetApp.getActiveSpreadsheet()
   var sheet = ss.getActiveSheet()
@@ -133,32 +143,63 @@ function ColourColumns() {
   
   if(rangeList == null || ranges.length == 0 || (ranges.length == 1 && ranges[0].getNumColumns() == 1 && ranges[0].getNumRows() == 1)){ //check if anything has been selected
     ui.alert(
-      'Please select one more more columns to format.',
+      'Please select some cells to format.',
       ui.ButtonSet.OK)
     return
   } else { //something has been selected
+    switch(type){
+      case OPTYPE.COLS: //col
+        var msg = 'This will conditionally format the selection column-by-column based on the rules set for the first column. Are you sure you want to continue?'
+        break
+      case OPTYPE.ROWS: //row
+        var msg = 'This will conditionally format the selection row-by-row based on the rules set for the first row. Are you sure you want to continue?'
+        break
+    }
     var result = ui.alert( //check the user wants to do this thing
       'Continue?',
-      'This will conditionally format the selection column-by-column based on the rules set for the first column. Are you sure you want to continue?',
+      msg,
       ui.ButtonSet.YES_NO);
     
     if (result == ui.Button.YES) {  //user wants to do this thing
-      var rules = getCondFmtRulesForRange(ranges[0].offset(0,0,ranges[0].getNumRows(),1), sheet)
+      switch(type){
+        case OPTYPE.COLS:
+          var rules = getCondFmtRulesForRange(ranges[0].offset(0,0,ranges[0].getNumRows(),1), sheet)
+          break
+        case OPTYPE.ROWS:
+          var rules = getCondFmtRulesForRange(ranges[0].offset(0,0,1, ranges[0].getNumColumns()), sheet)
+          break
+      }
+      
       if(rules.length == 0){
-        ui.alert("No conditional formatting has been set for the first column of your selection. Please set conditional formatting for the first column of you selection then try again", ui.ButtonSet.OK)
+        ui.alert("No conditional formatting has been set for the first row/column of your selection. Please set conditional formatting for the first column of you selection then try again", ui.ButtonSet.OK)
         return
       }
-            
+
       for (var i = 0; i < ranges.length; i++) {
-        for(var j=0; j<ranges[i].getNumColumns(); j++) {
+        switch(type){
+          case OPTYPE.COLS:
+            var numrowscols = ranges[i].getNumColumns()
+            break
+          case OPTYPE.ROWS:
+            var numrowscols = ranges[i].getNumRows()
+            break
+        }
+        for(var j=0; j<numrowscols; j++) {
           if(i==0 && j==0){
-            continue  //skip first column as that's our source of formatting; no need to apply it back to itself
+            continue  //skip first row/column as that's our source of formatting; no need to apply it back to itself
           }
-          var col = ranges[i].offset(0,j,ranges[i].getNumRows(), 1)
+          switch(type){
+            case OPTYPE.COLS:
+              var range = ranges[i].offset(0,j,ranges[i].getNumRows(), 1)              
+              break
+            case OPTYPE.ROWS:
+              var range = ranges[i].offset(j,0,1, ranges[i].getNumColumns())
+              break
+          }
 
           for(var k=0; k<rules.length; k++){
              var rulebuilder = rules[k].copy()
-             conditionalFormatRules.push(rulebuilder.setRanges([col]).build());
+             conditionalFormatRules.push(rulebuilder.setRanges([range]).build());
           }
         }
       }
@@ -166,6 +207,8 @@ function ColourColumns() {
     }
   }
 }
+
+
 
 function SortSheetHorizontallyAZ(){
   SortHorizontally('sheet', true)
