@@ -258,7 +258,11 @@ function SortHorizontally(type, order){
     throw("invalid row entered")
   }
 
-  var tempsheet = ss.insertSheet('ColumnTools Temporary Sorting Sheet');
+  var  tempSheetName = 'ColumnTools Temporary Sorting Sheet'
+  while(ss.getSheetByName(tempSheetName) != null){
+    tempSheetName += Math.floor(Math.random() * 9).toString()
+  }
+  var tempsheet = ss.insertSheet(tempSheetName);
 
   range.copyTo(tempsheet.getRange("A1"), SpreadsheetApp.CopyPasteType.PASTE_NORMAL, true)
   var temprange = tempsheet.getRange(1,1,range.getNumColumns(), range.getNumRows())
