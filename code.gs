@@ -1,3 +1,9 @@
+var dialogMsg = ""
+
+function getDialogMsg(){
+  return dialogMsg
+}
+
 function onOpen(e) {
   SpreadsheetApp.getUi()
     .createAddonMenu()
@@ -56,15 +62,16 @@ function NameRanges(type) {
   } else { //something has been selected
     switch(type){
       case OPTYPE.COLS: //col
-        var msg = 'This will convert each selected Column to a Named Range, using the top cell as the name. Any named ranges with the same name will be over-written. Are you sure you want to continue?'
+        dialogMsg = 'This will convert each selected Column to a Named Range, using the top cell as the name. Any named ranges with the same name will be over-written. Are you sure you want to continue?'
         break
       case OPTYPE.ROWS: //row
-        var msg = 'This will convert each selected Row to a Named Range, using the left cell as the name. Any named ranges with the same name will be over-written. Are you sure you want to continue?'
+        dialogMsg = 'This will convert each selected Row to a Named Range, using the left cell as the name. Any named ranges with the same name will be over-written. Are you sure you want to continue?'
         break
     }
+    
     var result = ui.alert( //check the user wants to do this thing
       'Continue?',
-      msg,
+      dialogMsg,
       ui.ButtonSet.YES_NO);
     
     if (result == ui.Button.YES) {  //user wants to do this thing
@@ -149,15 +156,15 @@ function ColourRanges(type) {
   } else { //something has been selected
     switch(type){
       case OPTYPE.COLS: //col
-        var msg = 'This will conditionally format the selection column-by-column based on the rules set for the first column. Are you sure you want to continue?'
+        dialogMsg = 'This will conditionally format the selection column-by-column based on the rules set for the first column. Are you sure you want to continue?'
         break
       case OPTYPE.ROWS: //row
-        var msg = 'This will conditionally format the selection row-by-row based on the rules set for the first row. Are you sure you want to continue?'
+        dialogMsg = 'This will conditionally format the selection row-by-row based on the rules set for the first row. Are you sure you want to continue?'
         break
     }
     var result = ui.alert( //check the user wants to do this thing
       'Continue?',
-      msg,
+      dialogMsg,
       ui.ButtonSet.YES_NO);
     
     if (result == ui.Button.YES) {  //user wants to do this thing
@@ -257,7 +264,6 @@ function SortHorizontally(type, order){
   if(sort_row < 1 || sort_row > range.getNumRows()){
     throw("invalid row entered")
   }
-
   var  tempSheetName = 'ColumnTools Temporary Sorting Sheet'
   while(ss.getSheetByName(tempSheetName) != null){
     tempSheetName += Math.floor(Math.random() * 9).toString()
