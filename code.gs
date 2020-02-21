@@ -11,6 +11,10 @@ function onOpen(e) {
     .addItem('Convert Rows to Named Ranges', 'NameRangesRows')
     .addItem('Conditionally Format selection one column at a time', 'ColourCols')
     .addItem('Conditionally Format selection one row at a time', 'ColourRows')
+    .addSubMenu(SpreadsheetApp.getUi().createMenu('Flatten')
+          .addItem('Flatten Sheet (has header row)', 'FlattenWithHeader')
+          .addItem('Flatten Sheet (no header row)', 'FlattenNoHeader')
+                )
     .addSubMenu(SpreadsheetApp.getUi().createMenu('Sort Horizontally')
           .addItem('Sort Sheet Horizontally A-Z', 'SortSheetHorizontallyAZ')
           .addItem('Sort Sheet Horizontally Z-A', 'SortSheetHorizontallyZA')
@@ -278,4 +282,41 @@ function SortHorizontally(type, order){
   
   ss.deleteSheet(tempsheet)
   ss.setActiveSheet(sheet, true)  // go back to sheet and selection where we started
+}
+
+function FlattenWithHeader(){
+  return FlattenSheet(true)
+}
+function FlattenNoHeader(){
+  return FlattenSheet(false)
+}
+  
+function FlattenSheet(hasHeader) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet()
+  var sheet = ss.getActiveSheet()
+  var dataRange = sheet.getDataRange()
+  var data = dataRange.getValues()
+  var output = []
+  if(hasHeader){
+    var header = data.shift().slice(0,2)
+    output.push(header)
+  }
+  for(var i in data){
+    var record_name = data[i][0]
+    var added_something = false
+    for(var j=1; j<data[i].length; j++){
+      if(data[i][j]){
+        output.push([record_name, data[i][j]])
+        added_something = true
+      }
+    }
+    if(! added_something){  //have a record with no data - just add the record name with a blank cell
+      output.push([record_name,""])
+    }
+
+  }
+  dataRange.clear()
+  dataRange = sheet.getRange(1,1,output.length,2)
+  dataRange.setNumberFormat('@STRING@')
+  dataRange.setValues(output)
 }
