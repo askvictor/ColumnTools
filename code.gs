@@ -276,7 +276,7 @@ function SortHorizontally(type, order){
 
   range.copyTo(tempsheet.getRange("A1"), SpreadsheetApp.CopyPasteType.PASTE_NORMAL, true)
   var temprange = tempsheet.getRange(1,1,range.getNumColumns(), range.getNumRows())
-
+  SpreadsheetApp.flush()
   temprange.sort({column: sort_row, ascending: order})
   temprange.copyTo(range, SpreadsheetApp.CopyPasteType.PASTE_NORMAL, true)
   
